@@ -1,5 +1,6 @@
 ﻿
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using System.Xml.Serialization;
@@ -17,14 +18,23 @@ namespace Meteostanice
 
             string? url = config["Station:Url"];
 
+            string connectionString = config.GetConnectionString("Default")!;
+
+
+            var options = new DbContextOptionsBuilder<WeatherDbContext>()
+                .UseSqlite(connectionString)
+                .Options;
+
+            using var db = new WeatherDbContext(options);
+
+
+            db.Database.Migrate();
+
             try
             {
                 using HttpClient client = new HttpClient();
 
                 string xml = await client.GetStringAsync(url);
-
-                //Console.WriteLine(xml);
-
 
                 XmlSerializer serializer = new XmlSerializer(typeof(Wario));
 
@@ -37,11 +47,29 @@ namespace Meteostanice
                     WriteIndented = true
                 });
 
-                Console.WriteLine(json);
+                //Console.WriteLine(json);
+
+                db.WeatherRecords.Add(new WeatherRecord
+                {
+                    RetrievedAt = DateTime.UtcNow,
+                    JsonData = json,
+                    IsOnline = true
+                });
+
+                db.SaveChanges();
 
             }
             catch (Exception ex)
             {
+                db.WeatherRecords.Add(new WeatherRecord
+                {
+                    RetrievedAt = DateTime.UtcNow,
+                    JsonData = null,
+                    IsOnline = false
+                });
+
+                db.SaveChanges(); 
+                
                 Console.WriteLine("ERROR: Station is offline.");
             
             }
