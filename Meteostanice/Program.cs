@@ -1,6 +1,8 @@
 ﻿
 
 using Microsoft.Extensions.Configuration;
+using System.Text.Json;
+using System.Xml.Serialization;
 
 namespace Meteostanice
 {
@@ -21,7 +23,21 @@ namespace Meteostanice
 
                 string xml = await client.GetStringAsync(url);
 
-                Console.WriteLine(xml);
+                //Console.WriteLine(xml);
+
+
+                XmlSerializer serializer = new XmlSerializer(typeof(Wario));
+
+                using StringReader reader = new StringReader(xml);
+                Wario data = (Wario)serializer.Deserialize(reader);
+
+             
+                string json = JsonSerializer.Serialize(data, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                Console.WriteLine(json);
 
             }
             catch (Exception ex)
