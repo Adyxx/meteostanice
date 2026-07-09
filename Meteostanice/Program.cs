@@ -1,5 +1,7 @@
 ﻿
 
+using Microsoft.Extensions.Configuration;
+
 namespace Meteostanice
 {
     internal class Program
@@ -7,7 +9,11 @@ namespace Meteostanice
 
         static async Task Main(string[] args)
         {
-            string url = "https://pastebin.com/raw/PMQueqDV";
+            IConfiguration config = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", optional: false)
+                .Build();
+
+            string? url = config["Station:Url"];
 
             try
             {
