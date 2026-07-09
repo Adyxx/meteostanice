@@ -9,26 +9,10 @@ namespace Meteostanice
 {
     internal class Program
     {
-
-        static async Task Main(string[] args)
+        static async Task DownloadWeatherAsync(IConfiguration config, WeatherDbContext db)
         {
-            IConfiguration config = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", optional: false)
-                .Build();
 
             string? url = config["Station:Url"];
-
-            string connectionString = config.GetConnectionString("Default")!;
-
-
-            var options = new DbContextOptionsBuilder<WeatherDbContext>()
-                .UseSqlite(connectionString)
-                .Options;
-
-            using var db = new WeatherDbContext(options);
-
-
-            db.Database.Migrate();
 
             try
             {
@@ -41,13 +25,12 @@ namespace Meteostanice
                 using StringReader reader = new StringReader(xml);
                 Wario data = (Wario)serializer.Deserialize(reader);
 
-             
+
                 string json = JsonSerializer.Serialize(data, new JsonSerializerOptions
                 {
                     WriteIndented = true
                 });
 
-                //Console.WriteLine(json);
 
                 db.WeatherRecords.Add(new WeatherRecord
                 {
@@ -57,6 +40,9 @@ namespace Meteostanice
                 });
 
                 db.SaveChanges();
+                Console.WriteLine($"{DateTime.Now}: Data saved.");
+                var count = db.WeatherRecords.Count();
+                Console.WriteLine($"Records in DB: {count}");
 
             }
             catch (Exception ex)
@@ -68,12 +54,46 @@ namespace Meteostanice
                     IsOnline = false
                 });
 
-                db.SaveChanges(); 
-                
-                Console.WriteLine("ERROR: Station is offline.");
-            
+                db.SaveChanges();
+                Console.WriteLine($"{DateTime.Now}: Station is offline.");
             }
 
+        }
+
+
+        static async Task Main(string[] args)
+        {
+            IConfiguration config = new ConfigurationBuilder()
+                .AddJsonFile(
+                    "appsettings.json",
+                    optional: false,
+                    reloadOnChange: true)
+                .Build();
+
+            string connectionString = config.GetConnectionString("Default")!;
+
+
+            Console.WriteLine("SETTINGS: "+ Path.GetFullPath("appsettings.json"));
+            Console.WriteLine("DATABASE: "+ Path.GetFullPath("meteo.db")+"\n");
+
+            var options = new DbContextOptionsBuilder<WeatherDbContext>()
+                .UseSqlite(connectionString)
+                .Options;
+
+            using var db = new WeatherDbContext(options);
+
+            db.Database.Migrate();
+            db.Database.ExecuteSqlRaw("PRAGMA journal_mode=DELETE;");
+
+            while (true)
+            {
+                await DownloadWeatherAsync(config, db);
+
+                int minutes = config.GetValue<int>("Station:IntervalMinutes");
+
+                await Task.Delay(TimeSpan.FromMinutes(minutes));
+                
+            }
         }
     }
 }
