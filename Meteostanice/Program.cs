@@ -2,6 +2,8 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Data;
+using System.Data.Common;
 using System.Text.Json;
 using System.Xml.Serialization;
 
@@ -9,10 +11,42 @@ namespace Meteostanice
 {
     internal class Program
     {
+        static bool TableExists(WeatherDbContext db, string tableName)
+        {
+            DbConnection connection = db.Database.GetDbConnection();
+            bool shouldCloseConnection = connection.State != ConnectionState.Open;
+
+            if (shouldCloseConnection)
+            {
+                connection.Open();
+            }
+
+            try
+            {
+                using DbCommand command = connection.CreateCommand();
+                command.CommandText = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = $tableName LIMIT 1;";
+
+                DbParameter parameter = command.CreateParameter();
+                parameter.ParameterName = "$tableName";
+                parameter.Value = tableName;
+                command.Parameters.Add(parameter);
+
+                return command.ExecuteScalar() is not null;
+            }
+            finally
+            {
+                if (shouldCloseConnection)
+                {
+                    connection.Close();
+                }
+            }
+        }
+
         static async Task DownloadWeatherAsync(IConfiguration config, WeatherDbContext db)
         {
 
-            string? url = config["Station:Url"];
+            string url = config["Station:Url"]
+                ?? throw new InvalidOperationException("Station:Url configuration is missing.");
 
             try
             {
@@ -23,7 +57,8 @@ namespace Meteostanice
                 XmlSerializer serializer = new XmlSerializer(typeof(Wario));
 
                 using StringReader reader = new StringReader(xml);
-                Wario data = (Wario)serializer.Deserialize(reader);
+                Wario data = serializer.Deserialize(reader) as Wario
+                    ?? throw new InvalidOperationException("Failed to load XML data from the Station.");
 
 
                 string json = JsonSerializer.Serialize(data, new JsonSerializerOptions
@@ -45,7 +80,7 @@ namespace Meteostanice
                 Console.WriteLine($"Records in DB: {count}");
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 db.WeatherRecords.Add(new WeatherRecord
                 {
@@ -83,6 +118,12 @@ namespace Meteostanice
             using var db = new WeatherDbContext(options);
 
             db.Database.Migrate();
+
+            if (!TableExists(db, "WeatherRecords"))
+            {
+                db.Database.EnsureCreated();
+            }
+
             db.Database.ExecuteSqlRaw("PRAGMA journal_mode=DELETE;");
 
             while (true)

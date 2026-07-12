@@ -7,40 +7,40 @@ namespace Meteostanice
     public class WeatherVariables
     {
         [XmlElement("sunrise")]
-        public string Sunrise { get; set; }
+        public string Sunrise { get; set; } = string.Empty;
 
         [XmlElement("sunset")]
-        public string Sunset { get; set; }
+        public string Sunset { get; set; } = string.Empty;
 
         [XmlElement("civstart")]
-        public string Civstart { get; set; }
+        public string Civstart { get; set; } = string.Empty;
 
         [XmlElement("civend")]
-        public string Civend { get; set; }
+        public string Civend { get; set; } = string.Empty;
 
         [XmlElement("nautstart")]
-        public string Nautstart { get; set; }
+        public string Nautstart { get; set; } = string.Empty;
 
         [XmlElement("nautend")]
-        public string Nautend { get; set; }
+        public string Nautend { get; set; } = string.Empty;
 
         [XmlElement("astrostart")]
-        public string Astrostart { get; set; }
+        public string Astrostart { get; set; } = string.Empty;
 
         [XmlElement("astroend")]
-        public string Astroend { get; set; }
+        public string Astroend { get; set; } = string.Empty;
 
         [XmlElement("daylen")]
-        public string Daylen { get; set; }
+        public string Daylen { get; set; } = string.Empty;
 
         [XmlElement("civlen")]
-        public string Civlen { get; set; }
+        public string Civlen { get; set; } = string.Empty;
 
         [XmlElement("nautlen")]
-        public string Nautlen { get; set; }
+        public string Nautlen { get; set; } = string.Empty;
         
         [XmlElement("astrolen")]
-        public string Astrolen { get; set; }
+        public string Astrolen { get; set; } = string.Empty;
 
         [XmlElement("moonphase")]
         public int Moonphase { get; set; }
