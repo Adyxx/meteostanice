@@ -11,36 +11,6 @@ namespace Meteostanice
 {
     internal class Program
     {
-        static bool TableExists(WeatherDbContext db, string tableName)
-        {
-            DbConnection connection = db.Database.GetDbConnection();
-            bool shouldCloseConnection = connection.State != ConnectionState.Open;
-
-            if (shouldCloseConnection)
-            {
-                connection.Open();
-            }
-
-            try
-            {
-                using DbCommand command = connection.CreateCommand();
-                command.CommandText = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = $tableName LIMIT 1;";
-
-                DbParameter parameter = command.CreateParameter();
-                parameter.ParameterName = "$tableName";
-                parameter.Value = tableName;
-                command.Parameters.Add(parameter);
-
-                return command.ExecuteScalar() is not null;
-            }
-            finally
-            {
-                if (shouldCloseConnection)
-                {
-                    connection.Close();
-                }
-            }
-        }
 
         static async Task DownloadWeatherAsync(IConfiguration config, WeatherDbContext db)
         {
@@ -107,10 +77,6 @@ namespace Meteostanice
 
             string connectionString = config.GetConnectionString("Default")!;
 
-
-            Console.WriteLine("SETTINGS: "+ Path.GetFullPath("appsettings.json"));
-            Console.WriteLine("DATABASE: "+ Path.GetFullPath("meteo.db")+"\n");
-
             var options = new DbContextOptionsBuilder<WeatherDbContext>()
                 .UseSqlite(connectionString)
                 .Options;
@@ -118,11 +84,6 @@ namespace Meteostanice
             using var db = new WeatherDbContext(options);
 
             db.Database.Migrate();
-
-            if (!TableExists(db, "WeatherRecords"))
-            {
-                db.Database.EnsureCreated();
-            }
 
             db.Database.ExecuteSqlRaw("PRAGMA journal_mode=DELETE;");
 
@@ -138,6 +99,5 @@ namespace Meteostanice
         }
     }
 }
-
 
 
